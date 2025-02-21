@@ -1,0 +1,46 @@
+@startuml
+actor Client
+participant "auth.py (login)" as Auth
+database "DB" as DB
+participant "JWT Library" as JWT
+
+Client -> Auth: POST /login (username, password)
+activate Auth
+
+Auth -> DB: Query User table
+activate DB
+DB --> Auth: User object or None
+deactivate DB
+
+Auth -> DB: Query Roles table for user
+activate DB
+DB --> Auth: List of Roles
+deactivate DB
+
+Auth -> DB: Check for existing valid token 
+Auth -> Client: Return JSON { access_token, token_type, roles, client_id, user_full_name }
+
+DB -> Auth: Check for existing token
+    Auth -> DB: Delete expired token
+end
+
+opt No existing token or expired token
+    note over Auth
+    Generate a new access token
+    end note
+
+    Auth -> JWT: create_access_token(...)
+    activate JWT
+    JWT --> Auth: New JWT token
+    deactivate JWT
+
+    Auth -> DB: Save new token in UserTokens
+    activate DB
+    DB --> Auth: Confirm save
+    deactivate DB
+end
+
+Auth -> Client: Return JSON { access_token, token_type, roles, client_id, user_full_name }
+deactivate Auth
+
+@enduml

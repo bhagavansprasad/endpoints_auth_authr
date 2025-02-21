@@ -1,0 +1,35 @@
+@startuml
+actor      Client   as C
+boundary  "upload"  as API
+actor     "Script" as Script
+
+C -> API: POST /upload\n\
+    Headers: Bearer token\n\
+    Body:\n\
+        ClientID \n\
+        filename \n\
+        hashvalue \n\
+        File
+
+activate API
+    API -> API: Validate Token
+        alt [token TokenInValid]
+            API -> C: Error: Authorazaion failed
+        end
+
+    API -> API: Save file 
+    API -> API: Validate Hash value
+        alt [Hash HashMismatch]
+            API -> API: Delete file
+            API -> C: Error: Upload failed
+        end
+    API -> Script: File
+    Script -> API: JSON {[\n\
+    src_field: PO, \n\
+    target_field: PO-Number,\n\
+    value: Value}]
+
+    API -> C: Success 200 OK, JSON Object
+deactivate API
+@enduml
+
